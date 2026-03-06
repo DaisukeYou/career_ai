@@ -1,36 +1,119 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 転職OS MVP
 
-## Getting Started
+AIとの短い対話から候補者理解、書類のたたき台、面接準備、条件通知レビューまでを前に進める日本向け転職支援WebアプリのMVPです。
 
-First, run the development server:
+## 技術構成
+
+- Next.js latest stable App Router
+- TypeScript
+- Tailwind CSS
+- shadcn/ui
+- Zustand
+- Zod
+- Server Actions
+- OpenAI Responses API + Structured Outputs
+
+## 動作要件
+
+- Node.js `>=18.17`
+- pnpm
+
+## セットアップ
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
+pnpm install
 pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+ブラウザで `http://localhost:3000` を開いてください。
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 環境変数
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+`.env.local` に以下を設定できます。
 
-## Learn More
+```bash
+OPENAI_API_KEY=your_api_key
+OPENAI_MODEL=gpt-5-mini
+```
 
-To learn more about Next.js, take a look at the following resources:
+- `OPENAI_API_KEY` 未設定時はモック自動切替
+- `OPENAI_MODEL` は任意
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## AI接続方針
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- 主要生成処理は Server Actions
+- OpenAI 接続時は Responses API + Structured Outputs を使用
+- 各出力は Zod で厳密に検証
+- refusal / error を `status` で UI に反映
 
-## Deploy on Vercel
+## 画面遷移図
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+1. `/` Landing Page
+2. `/diagnosis` 1分診断
+3. `/interview` 5分AI面談
+4. `/profile` 面談結果
+5. `/documents` 書類ページ
+6. `/interview-prep` 面接準備
+7. `/offer-review` 条件通知レビュー
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## ローカル保存方針
+
+`localStorage` に保存するもの:
+
+- mode
+- quickAssessmentInput
+- quickAssessment
+- interviewAnswers
+- generatedProfile
+- careerHistoryDraft
+- selfPRDraft
+- motivationDraft
+- interviewPrep
+
+`localStorage` に保存しないもの:
+
+- 氏名
+- 電話
+- メール
+- resumeDraft
+- offerReview
+- 条件通知レビュー原文
+
+## 実装内容
+
+- 1分診断
+- general / construction 切替
+- construction の共通質問 + 職種分岐質問
+- profile 最優先生成
+- documents / interview-prep の遅延生成
+- offer review の確認論点整理
+- Markdownエクスポート
+- refusal / error UI
+- スケルトン表示
+- サンプル4種
+
+## サンプルデータ
+
+- 若手CS職
+- 法人営業職
+- 建築施工管理職
+- CADオペレーター
+
+## テスト
+
+```bash
+pnpm lint
+pnpm test
+pnpm test:e2e
+```
+
+## 今後の拡張ポイント
+
+- Supabase 永続化
+- 認証
+- PDF出力
+- OCR / PDF解析
+- 外部媒体連携
+- 深掘り面談
+- 企業別面接対策
+- 条件通知レビューのアップロード解析

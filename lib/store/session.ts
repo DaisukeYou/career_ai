@@ -18,6 +18,7 @@ import type {
   SelfPRDraft,
   SensitiveProfileInput,
 } from "@/lib/schemas/domain";
+import { normalizeGenerationResult } from "@/lib/schemas/domain";
 
 type SessionState = {
   mode: AppMode;
@@ -70,6 +71,30 @@ export function partializeSessionState(state: SessionState & SessionActions) {
     interviewPrep: state.interviewPrep,
     selectedSampleId: state.selectedSampleId,
     lastSavedAt: state.lastSavedAt,
+  };
+}
+
+function normalizeSessionData(state: Partial<SessionState>) {
+  return {
+    ...state,
+    quickAssessment: state.quickAssessment
+      ? normalizeGenerationResult(state.quickAssessment)
+      : null,
+    generatedProfile: state.generatedProfile
+      ? normalizeGenerationResult(state.generatedProfile)
+      : null,
+    resumeDraft: state.resumeDraft ? normalizeGenerationResult(state.resumeDraft) : null,
+    careerHistoryDraft: state.careerHistoryDraft
+      ? normalizeGenerationResult(state.careerHistoryDraft)
+      : null,
+    selfPRDraft: state.selfPRDraft ? normalizeGenerationResult(state.selfPRDraft) : null,
+    motivationDraft: state.motivationDraft
+      ? normalizeGenerationResult(state.motivationDraft)
+      : null,
+    interviewPrep: state.interviewPrep
+      ? normalizeGenerationResult(state.interviewPrep)
+      : null,
+    offerReview: state.offerReview ? normalizeGenerationResult(state.offerReview) : null,
   };
 }
 
@@ -147,14 +172,14 @@ export const useCareerSessionStore = create<SessionState & SessionActions>()(
             mode: sample.profile.result?.mode ?? "general",
           },
           selectedSampleId: sampleId,
-          quickAssessment: sample.quickAssessment,
-          generatedProfile: sample.profile,
-          resumeDraft: sample.documents.resumeDraft,
-          careerHistoryDraft: sample.documents.careerHistoryDraft,
-          selfPRDraft: sample.documents.selfPRDraft,
-          motivationDraft: sample.documents.motivationDraft,
-          interviewPrep: sample.interviewPrep,
-          offerReview: sample.offerReview,
+          quickAssessment: normalizeGenerationResult(sample.quickAssessment),
+          generatedProfile: normalizeGenerationResult(sample.profile),
+          resumeDraft: normalizeGenerationResult(sample.documents.resumeDraft),
+          careerHistoryDraft: normalizeGenerationResult(sample.documents.careerHistoryDraft),
+          selfPRDraft: normalizeGenerationResult(sample.documents.selfPRDraft),
+          motivationDraft: normalizeGenerationResult(sample.documents.motivationDraft),
+          interviewPrep: normalizeGenerationResult(sample.interviewPrep),
+          offerReview: normalizeGenerationResult(sample.offerReview),
           interviewAnswers: [],
           offerReviewRawText: "",
         });
@@ -166,6 +191,10 @@ export const useCareerSessionStore = create<SessionState & SessionActions>()(
       name: "career-os-session-v1",
       storage: createJSONStorage(() => localStorage),
       partialize: partializeSessionState,
+      merge: (persistedState, currentState) => ({
+        ...currentState,
+        ...normalizeSessionData(persistedState as Partial<SessionState>),
+      }),
     },
   ),
 );
@@ -176,10 +205,10 @@ export const selectHasMinimumProfileData = (
 
 export const selectDocumentCompletion = (state: SessionState) =>
   [
-    state.resumeDraft?.status === "success",
-    state.careerHistoryDraft?.status === "success",
-    state.selfPRDraft?.status === "success",
-    state.motivationDraft?.status === "success",
+    state.resumeDraft?.status === "ok" || state.resumeDraft?.status === "partial",
+    state.careerHistoryDraft?.status === "ok" || state.careerHistoryDraft?.status === "partial",
+    state.selfPRDraft?.status === "ok" || state.selfPRDraft?.status === "partial",
+    state.motivationDraft?.status === "ok" || state.motivationDraft?.status === "partial",
   ].filter(Boolean).length;
 
 export const selectCurrentInterviewProgress = (

@@ -21,9 +21,10 @@ function withMeta<T extends { result?: unknown }>(
   body: Omit<T, "status" | "message" | "generatedAt">,
 ): T {
   return {
-    status: "success",
+    status: "ok",
     message: "下書きを作成しました。",
     generatedAt: new Date().toISOString(),
+    warnings: [],
     ...body,
   } as unknown as T;
 }

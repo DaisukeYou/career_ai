@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { partializeSessionState } from "@/lib/store/session";
+import { normalizeGenerationResult } from "@/lib/schemas/domain";
 
 describe("partializeSessionState", () => {
   it("does not persist sensitive fields or offer review content", () => {
@@ -18,7 +19,7 @@ describe("partializeSessionState", () => {
       interviewAnswers: [],
       generatedProfile: null,
       resumeDraft: {
-        status: "success",
+        status: "ok",
         message: "",
         result: {
           basicInfo: {
@@ -37,7 +38,7 @@ describe("partializeSessionState", () => {
       motivationDraft: null,
       interviewPrep: null,
       offerReview: {
-        status: "success",
+        status: "ok",
         message: "",
         result: {
           basicTerms: [],
@@ -64,5 +65,21 @@ describe("partializeSessionState", () => {
     expect("offerReview" in partial).toBe(false);
     expect("offerReviewRawText" in partial).toBe(false);
     expect("sensitiveProfileInput" in partial).toBe(false);
+  });
+
+  it("normalizes legacy success status to ok", () => {
+    const normalized = normalizeGenerationResult({
+      status: "success",
+      message: "ok",
+      result: {
+        mode: "general" as const,
+        strengthTags: ["a", "b", "c"] as [string, string, string],
+        nextActions: ["a", "b", "c"] as [string, string, string],
+        improvementPoints: ["a", "b", "c"] as [string, string, string],
+        summary: "summary",
+      },
+    });
+
+    expect(normalized.status).toBe("ok");
   });
 });

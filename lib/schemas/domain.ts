@@ -1,7 +1,17 @@
 import { z } from "zod";
 
 export const appModeSchema = z.enum(["general", "construction"]);
-export const generationStatusSchema = z.enum(["success", "refusal", "error"]);
+export const legacyGenerationStatusSchema = z.enum(["success"]);
+export const generationStatusSchema = z.enum([
+  "ok",
+  "partial",
+  "refusal",
+  "error",
+]);
+export const compatibleGenerationStatusSchema = z.union([
+  generationStatusSchema,
+  legacyGenerationStatusSchema,
+]);
 export const toneOptionSchema = z.enum([
   "balanced",
   "confident",
@@ -24,6 +34,15 @@ export const generationMetaSchema = z.object({
   message: z.string(),
   refusalReason: z.string().optional(),
   generatedAt: z.string().optional(),
+  warnings: z.array(z.string()).optional(),
+});
+
+export const legacyGenerationMetaSchema = z.object({
+  status: compatibleGenerationStatusSchema,
+  message: z.string(),
+  refusalReason: z.string().optional(),
+  generatedAt: z.string().optional(),
+  warnings: z.array(z.string()).optional(),
 });
 
 export const quickAssessmentInputSchema = z.object({
@@ -218,6 +237,7 @@ export const sensitiveProfileInputSchema = z.object({
 
 export const persistedSessionStateSchema = z.object({
   mode: appModeSchema,
+  quickAssessmentInput: quickAssessmentInputSchema.nullable(),
   quickAssessment: quickAssessmentResultSchema.nullable(),
   interviewAnswers: z.array(interviewAnswerSchema),
   generatedProfile: candidateProfileSchema.nullable(),
@@ -238,6 +258,9 @@ export const volatileSessionStateSchema = z.object({
 
 export type AppMode = z.infer<typeof appModeSchema>;
 export type GenerationStatus = z.infer<typeof generationStatusSchema>;
+export type CompatibleGenerationStatus = z.infer<
+  typeof compatibleGenerationStatusSchema
+>;
 export type ToneOption = z.infer<typeof toneOptionSchema>;
 export type WorryOption = z.infer<typeof worryOptionSchema>;
 export type QuickAssessmentInput = z.infer<typeof quickAssessmentInputSchema>;
@@ -254,3 +277,39 @@ export type OfferReviewInput = z.infer<typeof offerReviewInputSchema>;
 export type OfferReviewResult = z.infer<typeof offerReviewResultSchema>;
 export type DocumentsBundle = z.infer<typeof documentsBundleSchema>;
 export type SensitiveProfileInput = z.infer<typeof sensitiveProfileInputSchema>;
+
+export function normalizeGenerationStatus(
+  status: CompatibleGenerationStatus,
+): GenerationStatus {
+  return status === "success" ? "ok" : status;
+}
+
+export function normalizeGenerationResult<
+  T extends {
+    status: CompatibleGenerationStatus;
+    result?: unknown;
+    message: string;
+    refusalReason?: string;
+    generatedAt?: string;
+    warnings?: string[];
+  },
+>(value: T): Omit<T, "status"> & { status: GenerationStatus } {
+  const normalizedStatus = normalizeGenerationStatus(value.status);
+
+  if ((normalizedStatus === "ok" || normalizedStatus === "partial") && !value.result) {
+    return {
+      ...value,
+      status: "error",
+      message: "生成結果の形式が不正なため再生成が必要です。",
+      warnings: [
+        ...(value.warnings ?? []),
+        "result が欠落していたため error に変換しました。",
+      ],
+    };
+  }
+
+  return {
+    ...value,
+    status: normalizedStatus,
+  };
+}

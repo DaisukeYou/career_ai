@@ -8,6 +8,7 @@ import type {
   OfferReviewResult,
   QuickAssessmentResult,
 } from "@/lib/schemas/domain";
+import { normalizeGenerationResult } from "@/lib/schemas/domain";
 import type {
   AiProvider,
   GenerateDocumentsInput,
@@ -19,6 +20,17 @@ function refusal(message: string) {
     message,
     refusalReason: message,
     generatedAt: new Date().toISOString(),
+    warnings: [],
+  };
+}
+
+function partial<T extends { result?: unknown }>(message: string, data: T) {
+  return {
+    status: "partial" as const,
+    message,
+    generatedAt: new Date().toISOString(),
+    warnings: ["追加情報があると精度を上げられます。"],
+    ...data,
   };
 }
 
@@ -75,7 +87,7 @@ export const mockAiProvider: AiProvider = {
       ) as QuickAssessmentResult;
     }
 
-    return getMockSample(inferSampleId(input)).quickAssessment;
+    return normalizeGenerationResult(getMockSample(inferSampleId(input)).quickAssessment) as QuickAssessmentResult;
   },
 
   async generateProfile(input) {
@@ -96,11 +108,11 @@ export const mockAiProvider: AiProvider = {
           : "site-manager"
         : inferSampleId(input.quickAssessment);
 
-    return getMockSample(sampleId).profile;
+    return normalizeGenerationResult(getMockSample(sampleId).profile) as CandidateProfile;
   },
 
   async generateDocuments(input) {
-    if (input.profile.status !== "success" || !input.profile.result) {
+    if ((input.profile.status !== "ok" && input.profile.status !== "partial") || !input.profile.result) {
       return {
         resumeDraft: refusal("プロフィールが未生成のため書類を作成できません。"),
         careerHistoryDraft: refusal("プロフィールが未生成のため書類を作成できません。"),
@@ -110,11 +122,33 @@ export const mockAiProvider: AiProvider = {
     }
 
     const sample = getMockSample(inferSampleId(input.quickAssessment));
-    return patchResumeSensitiveFields(sample.documents, input);
+    const patched = patchResumeSensitiveFields(sample.documents, input);
+
+    if (input.answers.filter((answer) => answer.answer.trim().length > 5).length < 4) {
+      return {
+        resumeDraft: partial("履歴書は作成できましたが、実績数字を足すと強くなります。", {
+          result: patched.resumeDraft.result,
+        }),
+        careerHistoryDraft: partial("職務経歴書は作成できましたが、案件規模や件数の補足が必要です。", {
+          result: patched.careerHistoryDraft.result,
+        }),
+        selfPRDraft: partial("自己PRは作成できましたが、具体例を補足すると精度が上がります。", {
+          result: patched.selfPRDraft.result,
+        }),
+        motivationDraft: normalizeGenerationResult(patched.motivationDraft),
+      } as DocumentsBundle;
+    }
+
+    return {
+      resumeDraft: normalizeGenerationResult(patched.resumeDraft),
+      careerHistoryDraft: normalizeGenerationResult(patched.careerHistoryDraft),
+      selfPRDraft: normalizeGenerationResult(patched.selfPRDraft),
+      motivationDraft: normalizeGenerationResult(patched.motivationDraft),
+    } as DocumentsBundle;
   },
 
   async generateInterviewPrep(input) {
-    if (input.profile.status !== "success") {
+    if (input.profile.status !== "ok" && input.profile.status !== "partial") {
       return refusal("プロフィールが未生成のため面接準備を作成できません。") as InterviewPrepResult;
     }
 
@@ -124,11 +158,17 @@ export const mockAiProvider: AiProvider = {
         ? "cad"
         : inferSampleId(input.quickAssessment);
 
-    return getMockSample(sampleId).interviewPrep;
+    const sample = normalizeGenerationResult(getMockSample(sampleId).interviewPrep) as InterviewPrepResult;
+    if (input.answers.filter((answer) => answer.answer.trim().length >= 4).length < 4 && sample.result) {
+      return partial("面接準備は作成できましたが、実績や転職理由を補足すると精度が上がります。", {
+        result: sample.result,
+      }) as InterviewPrepResult;
+    }
+    return sample;
   },
 
   async generateOfferReview(input) {
-    if (input.rawText.trim().length < 40) {
+    if (input.rawText.trim().length < 25) {
       return refusal(
         "条件通知レビューを作るには、給与・勤務地・雇用条件がわかる文面をもう少し貼り付けてください。",
       ) as OfferReviewResult;
@@ -139,14 +179,23 @@ export const mockAiProvider: AiProvider = {
         ? mockSamples[2].offerReview
         : mockSamples[0].offerReview;
 
+    if (input.rawText.trim().length < 90) {
+      return partial("一部の論点は整理できましたが、文面が短いため確認前提でご利用ください。", {
+        result: {
+          ...sample.result!,
+          disclaimer: OFFER_REVIEW_DISCLAIMER,
+        },
+      }) as OfferReviewResult;
+    }
+
     return {
       ...sample,
       result: sample.result
         ? {
-            ...sample.result,
-            disclaimer: OFFER_REVIEW_DISCLAIMER,
-          }
+          ...sample.result,
+          disclaimer: OFFER_REVIEW_DISCLAIMER,
+        }
         : sample.result,
-    };
+    } as OfferReviewResult;
   },
 };

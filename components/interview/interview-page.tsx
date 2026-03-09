@@ -10,6 +10,7 @@ import { SensitiveDataNote } from "@/components/common/sensitive-data-note";
 import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
 import { getConstructionBranchFromAnswers, getInterviewSteps } from "@/lib/constants/app";
@@ -32,9 +33,10 @@ export function InterviewPage() {
   const [index, setIndex] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [generationError, setGenerationError] = useState<{
-    status: "success" | "refusal" | "error";
+    status: "ok" | "partial" | "refusal" | "error";
     message: string;
     refusalReason?: string;
+    warnings?: string[];
   } | null>(null);
 
   const branch = getConstructionBranchFromAnswers(interviewAnswers);
@@ -106,7 +108,7 @@ export function InterviewPage() {
       });
       setSubmitting(false);
 
-      if (profile.status !== "success") {
+      if (profile.status === "refusal" || profile.status === "error") {
         setGenerationError(profile);
         return;
       }
@@ -154,11 +156,15 @@ export function InterviewPage() {
               status={generationError.status}
               message={generationError.message}
               refusalReason={generationError.refusalReason}
+              warnings={generationError.warnings}
               onRetry={() => setGenerationError(null)}
             />
           ) : null}
+          <Label htmlFor={`interview-${currentStep.id}`}>{currentStep.label}</Label>
           <Textarea
-            aria-label={currentStep.label}
+            id={`interview-${currentStep.id}`}
+            aria-invalid={Boolean(generationError)}
+            aria-describedby={generationError ? "interview-generation-error" : undefined}
             value={currentAnswer}
             onChange={(event) =>
               setInterviewAnswer({

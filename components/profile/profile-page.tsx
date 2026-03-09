@@ -38,6 +38,7 @@ export function ProfilePage() {
             status={generatedProfile.status}
             message={generatedProfile.message}
             refusalReason={generatedProfile.refusalReason}
+            warnings={generatedProfile.warnings}
           />
         </CardHeader>
         {generatedProfile.result ? (

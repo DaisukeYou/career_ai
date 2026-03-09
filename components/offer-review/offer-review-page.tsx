@@ -34,11 +34,16 @@ export function OfferReviewPage() {
             PDFや画像アップロードは今後対応予定です。初版では、条件通知の文面をテキストで貼り付けてください。
           </p>
           <Textarea
+            aria-label="条件通知の文面"
+            aria-describedby="offer-review-help"
             value={offerReviewRawText}
             onChange={(event) => setOfferReviewRawText(event.target.value)}
             placeholder="例: 想定年収420万円、月給35万円(固定残業45時間分を含む)..."
             className="min-h-72 rounded-[1.5rem] bg-slate-50"
           />
+          <p id="offer-review-help" className="text-sm text-slate-500">
+            給与、勤務地、雇用形態、固定残業、試用期間などが入ると精度が上がります。
+          </p>
           <Button
             type="button"
             className="rounded-full bg-emerald-900 text-white hover:bg-emerald-950"
@@ -73,6 +78,7 @@ export function OfferReviewPage() {
                 status={offerReview.status}
                 message={offerReview.message}
                 refusalReason={offerReview.refusalReason}
+                warnings={offerReview.warnings}
               />
               {offerReview.result ? (
                 <>
@@ -85,12 +91,20 @@ export function OfferReviewPage() {
                       ))}
                     </InfoBlock>
                     <InfoBlock title="信頼度">
-                      <p className="text-sm text-slate-600">overallConfidence: {offerReview.result.overallConfidence}</p>
+                      <p className="text-sm text-slate-600">
+                        overallConfidence:{" "}
+                        <span className="rounded-full bg-slate-900 px-2 py-1 text-xs text-white">
+                          {offerReview.result.overallConfidence}
+                        </span>
+                      </p>
                       <p className="text-sm text-slate-600">
                         needsHumanReview: {offerReview.result.needsHumanReview ? "はい" : "いいえ"}
                       </p>
                     </InfoBlock>
                   </div>
+                  {offerReview.result.needsHumanReview ? (
+                    <LegalDisclaimerAlert text="このレビューは確認論点の整理にとどまります。重要な条件は人の確認を前提にしてください。" />
+                  ) : null}
                   <InfoBlock title="赤旗の可能性がある論点">
                     {offerReview.result.redFlagPoints.map((item) => (
                       <p key={item} className="text-sm text-slate-600">
@@ -99,11 +113,15 @@ export function OfferReviewPage() {
                     ))}
                   </InfoBlock>
                   <InfoBlock title="不足情報">
-                    {offerReview.result.missingInfo.map((item) => (
-                      <p key={item} className="text-sm text-slate-600">
-                        {item}
-                      </p>
-                    ))}
+                    {offerReview.result.missingInfo.length ? (
+                      offerReview.result.missingInfo.map((item) => (
+                        <p key={item} className="text-sm text-slate-600">
+                          {item}
+                        </p>
+                      ))
+                    ) : (
+                      <p className="text-sm text-slate-600">現時点で大きな不足情報は見当たりません。</p>
+                    )}
                   </InfoBlock>
                   <InfoBlock title="面接・内定後に確認すべき質問">
                     {offerReview.result.checkQuestions.map((item) => (

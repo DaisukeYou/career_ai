@@ -6,7 +6,7 @@ describe("formatMarkdownExport", () => {
   it("includes the main document sections", () => {
     const markdown = formatMarkdownExport({
       resumeDraft: {
-        status: "success",
+        status: "ok",
         message: "",
         result: {
           basicInfo: {
@@ -19,7 +19,7 @@ describe("formatMarkdownExport", () => {
         },
       },
       careerHistoryDraft: {
-        status: "success",
+        status: "ok",
         message: "",
         result: {
           headline: "headline",
@@ -36,7 +36,7 @@ describe("formatMarkdownExport", () => {
         },
       },
       selfPRDraft: {
-        status: "success",
+        status: "ok",
         message: "",
         result: {
           tone: "balanced",
@@ -46,7 +46,7 @@ describe("formatMarkdownExport", () => {
         },
       },
       motivationDraft: {
-        status: "success",
+        status: "ok",
         message: "",
         result: {
           templateLabel: "template",

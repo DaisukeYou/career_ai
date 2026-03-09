@@ -71,6 +71,7 @@ export function InterviewPrepPage() {
                 status={interviewPrep.status}
                 message={interviewPrep.message}
                 refusalReason={interviewPrep.refusalReason}
+                warnings={interviewPrep.warnings}
               />
               {interviewPrep.result ? (
                 <>

@@ -55,8 +55,13 @@ export function DiagnosisPage() {
   const onSubmit = form.handleSubmit((values) => {
     const parsed = quickAssessmentInputSchema.safeParse(values);
     if (!parsed.success) {
-      form.setError("currentRole", {
-        message: parsed.error.issues[0]?.message,
+      parsed.error.issues.forEach((issue) => {
+        const field = issue.path[0];
+        if (typeof field === "string") {
+          form.setError(field as keyof QuickAssessmentInput, {
+            message: issue.message,
+          });
+        }
       });
       return;
     }
@@ -85,23 +90,59 @@ export function DiagnosisPage() {
             <div className="grid gap-5 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="currentRole">現職または直近職種</Label>
-                <Input id="currentRole" {...form.register("currentRole")} />
+                <Input
+                  id="currentRole"
+                  aria-invalid={Boolean(form.formState.errors.currentRole)}
+                  aria-describedby={form.formState.errors.currentRole ? "currentRole-error" : undefined}
+                  {...form.register("currentRole")}
+                />
+                {form.formState.errors.currentRole ? (
+                  <p id="currentRole-error" className="text-sm text-red-600">
+                    {form.formState.errors.currentRole.message}
+                  </p>
+                ) : null}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="desiredRole">希望職種</Label>
-                <Input id="desiredRole" {...form.register("desiredRole")} />
+                <Input
+                  id="desiredRole"
+                  aria-invalid={Boolean(form.formState.errors.desiredRole)}
+                  aria-describedby={form.formState.errors.desiredRole ? "desiredRole-error" : undefined}
+                  {...form.register("desiredRole")}
+                />
+                {form.formState.errors.desiredRole ? (
+                  <p id="desiredRole-error" className="text-sm text-red-600">
+                    {form.formState.errors.desiredRole.message}
+                  </p>
+                ) : null}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="preferredLocation">希望勤務地</Label>
-                <Input id="preferredLocation" {...form.register("preferredLocation")} />
+                <Input
+                  id="preferredLocation"
+                  aria-invalid={Boolean(form.formState.errors.preferredLocation)}
+                  aria-describedby={
+                    form.formState.errors.preferredLocation ? "preferredLocation-error" : undefined
+                  }
+                  {...form.register("preferredLocation")}
+                />
+                {form.formState.errors.preferredLocation ? (
+                  <p id="preferredLocation-error" className="text-sm text-red-600">
+                    {form.formState.errors.preferredLocation.message}
+                  </p>
+                ) : null}
               </div>
               <div className="space-y-2">
-                <Label>年収レンジ</Label>
+                <Label htmlFor="salaryRange">年収レンジ</Label>
                 <Select
                   defaultValue={form.getValues("salaryRange")}
                   onValueChange={(value) => form.setValue("salaryRange", value)}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger
+                    id="salaryRange"
+                    aria-invalid={Boolean(form.formState.errors.salaryRange)}
+                    aria-describedby={form.formState.errors.salaryRange ? "salaryRange-error" : undefined}
+                  >
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -112,16 +153,25 @@ export function DiagnosisPage() {
                     ))}
                   </SelectContent>
                 </Select>
+                {form.formState.errors.salaryRange ? (
+                  <p id="salaryRange-error" className="text-sm text-red-600">
+                    {form.formState.errors.salaryRange.message}
+                  </p>
+                ) : null}
               </div>
               <div className="space-y-2">
-                <Label>現在の悩み</Label>
+                <Label htmlFor="currentWorry">現在の悩み</Label>
                 <Select
                   defaultValue={form.getValues("currentWorry")}
                   onValueChange={(value) =>
                     form.setValue("currentWorry", value as QuickAssessmentInput["currentWorry"])
                   }
                 >
-                  <SelectTrigger>
+                  <SelectTrigger
+                    id="currentWorry"
+                    aria-invalid={Boolean(form.formState.errors.currentWorry)}
+                    aria-describedby={form.formState.errors.currentWorry ? "currentWorry-error" : undefined}
+                  >
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -132,9 +182,14 @@ export function DiagnosisPage() {
                     ))}
                   </SelectContent>
                 </Select>
+                {form.formState.errors.currentWorry ? (
+                  <p id="currentWorry-error" className="text-sm text-red-600">
+                    {form.formState.errors.currentWorry.message}
+                  </p>
+                ) : null}
               </div>
               <div className="space-y-2">
-                <Label>モード</Label>
+                <Label htmlFor="mode">モード</Label>
                 <Select
                   defaultValue={form.getValues("mode")}
                   onValueChange={(value) => {
@@ -142,7 +197,11 @@ export function DiagnosisPage() {
                     setMode(value as QuickAssessmentInput["mode"]);
                   }}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger
+                    id="mode"
+                    aria-invalid={Boolean(form.formState.errors.mode)}
+                    aria-describedby={form.formState.errors.mode ? "mode-error" : undefined}
+                  >
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -150,6 +209,11 @@ export function DiagnosisPage() {
                     <SelectItem value="construction">建築建設</SelectItem>
                   </SelectContent>
                 </Select>
+                {form.formState.errors.mode ? (
+                  <p id="mode-error" className="text-sm text-red-600">
+                    {form.formState.errors.mode.message}
+                  </p>
+                ) : null}
               </div>
             </div>
 
@@ -202,9 +266,10 @@ export function DiagnosisPage() {
                   status={result.status}
                   message={result.message}
                   refusalReason={result.refusalReason}
+                  warnings={result.warnings}
                   onRetry={() => onSubmit()}
                 />
-                {result.status === "success" && result.result ? (
+                {(result.status === "ok" || result.status === "partial") && result.result ? (
                   <div className="space-y-5">
                     <div className="space-y-3">
                       <p className="text-sm font-medium text-slate-500">仮の強みタグ</p>

@@ -426,3 +426,18 @@ export function getConstructionBranchFromAnswers(answers: InterviewAnswer[]) {
 
   return value;
 }
+
+export function inferConstructionCategory(
+  answers: InterviewAnswer[],
+): "施工管理" | "設計" | "積算" | "CAD/BIM" | "職人系" | "unknown" {
+  const branch = getConstructionBranchFromAnswers(answers);
+
+  if (!branch) return "unknown";
+  if (branch === "施工管理") return "施工管理";
+  if (branch === "設計") return "設計";
+  if (branch === "積算") return "積算";
+  if (branch === "CAD/BIM") return "CAD/BIM";
+  if (branch === "職人系") return "職人系";
+
+  return "unknown";
+}

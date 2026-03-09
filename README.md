@@ -44,7 +44,8 @@ OPENAI_MODEL=gpt-5-mini
 - 主要生成処理は Server Actions
 - OpenAI 接続時は Responses API + Structured Outputs を使用
 - 各出力は Zod で厳密に検証
-- refusal / error を `status` で UI に反映
+- `ok / partial / refusal / error` を `status` で UI に反映
+- 旧 `success` は読み取り互換のみ
 
 ## 画面遷移図
 
@@ -84,13 +85,42 @@ OPENAI_MODEL=gpt-5-mini
 - 1分診断
 - general / construction 切替
 - construction の共通質問 + 職種分岐質問
+- construction の職種別 few-shot 前提の OpenAI prompt
 - profile 最優先生成
 - documents / interview-prep の遅延生成
 - offer review の確認論点整理
 - Markdownエクスポート
-- refusal / error UI
+- partial / refusal / error UI
 - スケルトン表示
 - サンプル4種
+
+## 現時点で未実装のもの
+
+- 認証
+- Supabase 永続化
+- PDF出力
+- OCR / PDF解析
+- PDF / 画像アップロードの実解析
+- 求人媒体連携
+- 深掘り面談
+- 本番向け監査ログ / レート制限
+
+## 本番利用時の注意点
+
+- OpenAI APIキー未設定時はモックへ自動フォールバックします。本番では feature flag と環境変数管理が必要です。
+- 生成結果は補助であり、採用判断、法的判断、労務判断の断定には使えません。
+- 条件通知レビューは法的助言ではなく、確認論点の整理支援です。
+- localStorage を利用しているため、共有端末や共用ブラウザでの利用には注意が必要です。
+- OpenAI 応答は `partial / refusal / error` を前提に UX を設計する必要があります。
+- construction few-shot は品質向上策であり、業務内容の正確性を保証するものではありません。
+
+## status 定義
+
+- `ok`: 必須品質を満たす生成
+- `partial`: 構造化は成功したが、情報不足や補足推奨がある生成
+- `refusal`: 安全上の拒否、または入力不足で有効な生成ができない状態
+- `error`: API障害、parse失敗、想定外レスポンス
+- `success`: 旧形式。現在は読み取り互換のみ
 
 ## サンプルデータ
 

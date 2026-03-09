@@ -171,6 +171,7 @@ export function DocumentsPage() {
                 status={resumeDraft?.status}
                 message={resumeDraft?.message}
                 refusalReason={resumeDraft?.refusalReason}
+                warnings={resumeDraft?.warnings}
                 body={resumeDraft?.result?.summary ?? ""}
                 onChange={(value) =>
                   resumeDraft?.result
@@ -197,6 +198,7 @@ export function DocumentsPage() {
                 status={careerHistoryDraft?.status}
                 message={careerHistoryDraft?.message}
                 refusalReason={careerHistoryDraft?.refusalReason}
+                warnings={careerHistoryDraft?.warnings}
                 body={
                   careerHistoryDraft?.result
                     ? [
@@ -217,6 +219,7 @@ export function DocumentsPage() {
                 status={selfPRDraft?.status}
                 message={selfPRDraft?.message}
                 refusalReason={selfPRDraft?.refusalReason}
+                warnings={selfPRDraft?.warnings}
                 body={selfPRDraft?.result?.body ?? ""}
                 onChange={(value) =>
                   selfPRDraft?.result
@@ -235,6 +238,7 @@ export function DocumentsPage() {
                 status={motivationDraft?.status}
                 message={motivationDraft?.message}
                 refusalReason={motivationDraft?.refusalReason}
+                warnings={motivationDraft?.warnings}
                 body={motivationDraft?.result?.body ?? ""}
                 onChange={(value) =>
                   motivationDraft?.result
@@ -259,15 +263,17 @@ function DocumentEditor({
   status,
   message,
   refusalReason,
+  warnings,
   body,
   onChange,
   extras,
   suggestions,
 }: {
   title: string;
-  status?: "success" | "refusal" | "error";
+  status?: "ok" | "partial" | "refusal" | "error";
   message?: string;
   refusalReason?: string;
+  warnings?: string[];
   body: string;
   onChange: (value: string) => void;
   extras?: React.ReactNode;
@@ -279,10 +285,20 @@ function DocumentEditor({
         <CardTitle>{title}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        {status && status !== "success" ? (
-          <GenerationStatePanel status={status} message={message ?? ""} refusalReason={refusalReason} />
+        {status && status !== "ok" ? (
+          <GenerationStatePanel
+            status={status}
+            message={message ?? ""}
+            refusalReason={refusalReason}
+            warnings={warnings}
+          />
         ) : null}
-        <Textarea value={body} onChange={(event) => onChange(event.target.value)} className="min-h-72 rounded-[1.5rem] bg-slate-50" />
+        <Textarea
+          aria-label={title}
+          value={body}
+          onChange={(event) => onChange(event.target.value)}
+          className="min-h-72 rounded-[1.5rem] bg-slate-50"
+        />
         {suggestions?.length ? (
           <div className="space-y-2">
             <p className="text-sm font-medium text-slate-500">数字を入れる提案</p>
